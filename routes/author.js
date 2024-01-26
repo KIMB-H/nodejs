@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../lib/db');
 const template = require('../lib/template');
+const member = require('../lib/member');
 const sanitizeHtml = require('sanitize-html');
-const qs = require('querystring');
 
 router.post('/create_process', (request, response) => {
     const post = request.body;
@@ -38,7 +38,7 @@ router.get('/update/:authorId', (request, response) => {
                                     <input type="submit" value="update">
                                 </p>
                             </form>
-                    `, ``);
+                    `, ``, member.statusUI(request, response));
             response.send(html);
         });
     });
@@ -80,7 +80,7 @@ router.get('/', (request, response) => {
                                 <input type="submit" value="create">
                             </p>
                         </form>
-                `, ``);
+                `, ``, member.statusUI(request, response));
         response.send(html);
     });
 });

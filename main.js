@@ -6,10 +6,15 @@ const compression = require('compression');
 const topicRouter = require('./routes/topic');
 const indexRouter = require('./routes/index');
 const authorRouter = require('./routes/author');
+const memberRouter = require('./routes/member');
 const helmet = require('helmet');
+const path = require('path');
+const session = require('express-session');
+const FileStore = require('session-file-store')(session);
+// const MySQLStore = require('express-mysql-session')(session);
 app.use(helmet());
 
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')))
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(compression());
@@ -21,9 +26,19 @@ app.get('*', function (request, response, next) { //get 방식으로 들어오�
     });
 });
 
+app.use(session({
+    secure: true,
+    HttpOnly: true,
+    secret: 'keyboard cat',
+    resave: false,
+    saveUninitialized: true,
+    store: new FileStore()
+}));
+
 app.use('/topic', topicRouter); // /topic으로 들어오는 경로에 topicRouter라는 미들웨어를 적용하겠다. 
 app.use('/', indexRouter);
 app.use('/author', authorRouter);
+app.use('/member', memberRouter);
 //rout, routing 이용자가 접속한 경로에 따라 다른 응답 대응
 
 app.use((req, res, next) => {

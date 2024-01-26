@@ -2,9 +2,15 @@ const express = require('express');
 const router = express.Router();
 const db = require('../lib/db');
 const template = require('../lib/template');
+const member = require('../lib/member');
+
 const sanitizeHtml = require('sanitize-html');
 
 router.get('/create', (request, response) => {
+    if (!member.isOwner(request, response)) {
+        response.redirect('/');
+        return false;
+    }
     db.query(`SELECT * FROM author`, (error2, authors) => {
         const title = 'CREATE';
         const list = template.list(request.list); //콤보박스는 select 태그에서 사용할 수 있다. 
@@ -22,13 +28,17 @@ router.get('/create', (request, response) => {
                     <input type="submit">
                 </p>
             </form>
-                    `, `<a href="/topic/create">create</a>`);
+                    `, `<a href="/topic/create">create</a>`, member.statusUI(request, response));
         response.send(html);
     });
 });
 
 
 router.post('/create_process', (request, response) => {
+    if (!member.isOwner(request, response)) {
+        response.redirect('/');
+        return false;
+    }
     const post = request.body;
     db.query(
         `INSERT INTO topic (title, description, created, author_id) VALUES (?,?,NOW(),?);`,
@@ -39,6 +49,10 @@ router.post('/create_process', (request, response) => {
 });
 
 router.get('/update/:pageId', (request, response) => {
+    if (!member.isOwner(request, response)) {
+        response.redirect('/');
+        return false;
+    }
     db.query(`SELECT * FROM topic WHERE id=?`, [request.params.pageId], (error2, topic) => {
         if (error2) {
             next(error2);
@@ -63,7 +77,7 @@ router.get('/update/:pageId', (request, response) => {
                             <input type="submit">
                         </p>
                         </form>
-                    `, `<a href="/topic/create">create</a> <a href="/topic/update/${topic[0].id}">update</a>`);
+                    `, `<a href="/topic/create">create</a> <a href="/topic/update/${topic[0].id}">update</a>`, member.statusUI(request, response));
                 response.send(html);
             });
         }
@@ -71,6 +85,10 @@ router.get('/update/:pageId', (request, response) => {
 });
 
 router.post('/update_process', (request, response) => {
+    if (!member.isOwner(request, response)) {
+        response.redirect('/');
+        return false;
+    }
     const post = request.body;
     db.query(`UPDATE topic SET title=?, description=?, author_id=? WHERE id=?`, [post.title, post.description, post.author, post.id], (error, result) => {
         response.redirect(`/topic/${post.id}`);
@@ -78,6 +96,10 @@ router.post('/update_process', (request, response) => {
 });
 
 router.post('/delete_process', (request, response) => {
+    if (!member.isOwner(request, response)) {
+        response.redirect('/');
+        return false;
+    }
     const post = request.body;
 
     db.query(`DELETE FROM topic WHERE id=?`, [post.id], (error, result) => {
@@ -89,10 +111,6 @@ router.post('/delete_process', (request, response) => {
 
 router.get('/:pageId', (request, response, next) => {
     db.query(`SELECT topic.id,title,description,created,author_id,name,profile FROM topic LEFT JOIN author ON topic.author_id=author.id WHERE topic.id=?;`, [request.params.pageId], (error2, topic) => {
-        // if (error2) {
-        //     next(error2);
-        //     // throw error2;
-        // }
         try {
             const sanitizedTitle = sanitizeHtml(topic[0].title);
             const sanitizedDescription = sanitizeHtml(topic[0].description);
@@ -110,7 +128,7 @@ router.get('/:pageId', (request, response, next) => {
                     <form action="/topic/delete_process" method="post">
                         <input type="hidden" name="id" value="${topicId}">
                         <input type="submit" value="delete">
-                    </form>`);
+                    </form>`, member.statusUI(request, response));
             response.send(html);
         } catch {
             next(error2);
